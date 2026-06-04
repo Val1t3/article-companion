@@ -14,7 +14,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - **Language**: TypeScript
 - **Runtime**: Bun (package manager, runtime, and test runner)
-- **API**: Claude API (Anthropic SDK)
+- **LLM Framework**: LangChain (orchestration and agent management)
+- **Model Providers**: 
+  - Google Gemini SDK - Primary supervisor and specialized agents
 
 ## Architecture & Key Files
 
