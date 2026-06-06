@@ -1,0 +1,21 @@
+{
+  "name": "article-companion",
+  "module": "source/index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "scripts": {
+    "start": "bun run source/index.ts"
+  },
+  "dependencies": {
+    "@langchain/core": "^1.1.48",
+    "@langchain/google": "^0.1.12",
+    "@langchain/tavily": "^1.2.0",
+    "zod": "^4.4.3"
+  }
+}

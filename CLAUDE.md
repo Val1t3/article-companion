@@ -20,6 +20,34 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Architecture & Key Files
 
+The current implementation is a **simple linear pipeline of 4 agents**, orchestrated by a plain async function (not LangGraph) because the flow is deterministic and linear.
+
+```
+prompt.md                  # user brief (English: topic + optional length/tone/audience)
+.env.local                 # GOOGLE_API_KEY, TAVILY_API_KEY (gitignored; see .env.example)
+source/
+  index.ts                 # entry point: read prompt.md -> run workflow -> write outputs
+  workflow.ts              # sequential orchestrator (DeepSearch -> Architect -> Dispatch -> Writer)
+  config/env.ts            # env validation (Bun loads .env.local natively)
+  config/models.ts         # makeModel("flash"|"pro") factory over ChatGoogle
+  types/index.ts           # shared interfaces (Source, ArticleStructure, DispatchedSection, AgentResult<T>)
+  agents/deepSearch.ts     # 15 best sources via Tavily search + Gemini ranking (flash)
+  agents/architect.ts      # logical article structure sized to requested length (pro)
+  agents/dispatch.ts       # maps source substance into each section, content not form (flash)
+  agents/writer.ts         # rewrites each section with humanization rules, English (pro)
+  utils/io.ts              # read prompt.md, write output/article-<date>.md and logs-<date>.md
+  utils/logger.ts          # accumulates AgentResult, renders the debug log
+output/                    # article-<date>.md (final article) + logs-<date>.md (per-agent debug)
+```
+
+**Pipeline data flow:** DeepSearch returns `Source[]` -> Architect returns `ArticleStructure` -> Dispatch returns `DispatchedSection[]` (key points + source refs) -> Writer returns the assembled Markdown article. The first three agents use `.withStructuredOutput(zodSchema)`; Writer returns prose.
+
+**Models:** `gemini-2.5-flash` for search/dispatch (speed), `gemini-2.5-pro` for architect/writer (quality). Provider: `@langchain/google` (`ChatGoogle`, Google AI platform via `GOOGLE_API_KEY`).
+
+**Language:** `prompt.md` and the generated article are in **English**; agent system prompts enforce English output.
+
+**Run:** `bun run start`.
+
 ### Key Patterns
 
 **Agent Interface**: All agents implement a common contract:
