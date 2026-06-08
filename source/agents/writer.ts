@@ -3,7 +3,9 @@ import type {
   AgentResult,
   ArticleStructure,
   DispatchedSection,
+  SectionDiagram,
   Source,
+  WrittenSection,
 } from "../types/index.ts";
 
 const AGENT = "Writer";
@@ -24,7 +26,7 @@ export async function runWriter(
   structure: ArticleStructure,
   sections: DispatchedSection[],
   sources: Source[],
-): Promise<AgentResult<string>> {
+): Promise<AgentResult<WrittenSection[]>> {
   const start = performance.now();
   console.log(`[${AGENT}] writing ${sections.length} sections...`);
 
@@ -32,7 +34,7 @@ export async function runWriter(
   const sourcesById = new Map(sources.map((s) => [s.id, s]));
   const outline = structure.sections.map((s) => `- ${s.heading}`).join("\n");
 
-  const writtenBodies: string[] = [];
+  const written: WrittenSection[] = [];
   for (const [index, section] of sections.entries()) {
     console.log(`[${AGENT}] section ${index + 1}/${sections.length}: ${section.heading}`);
 
@@ -55,19 +57,42 @@ export async function runWriter(
     );
 
     const text = typeof body.content === "string" ? body.content : String(body.content);
-    writtenBodies.push(`## ${section.heading}\n\n${text.trim()}`);
+    written.push({ id: section.id, heading: section.heading, markdown: text.trim() });
   }
 
-  const article = `# ${structure.title}\n\n${writtenBodies.join("\n\n")}\n`;
-  console.log(`[${AGENT}] article assembled (${article.split(/\s+/).length} words).`);
+  console.log(`[${AGENT}] wrote ${written.length} sections.`);
 
   return {
     agent: AGENT,
-    content: article,
+    content: written,
     metadata: {
       model: modelName(TIER),
       durationMs: Math.round(performance.now() - start),
-      notes: `${sections.length} sections written`,
+      notes: `${written.length} sections written`,
     },
   };
+}
+
+/**
+ * Assemble the final Markdown article from the written sections, embedding any
+ * Mermaid diagram produced by the Diagrammer at the end of its section's body.
+ */
+export function assembleArticle(
+  title: string,
+  sections: WrittenSection[],
+  diagrams: SectionDiagram[],
+): string {
+  const diagramById = new Map(diagrams.map((d) => [d.sectionId, d]));
+
+  const blocks = sections.map((section) => {
+    let block = `## ${section.heading}\n\n${section.markdown}`;
+    const diagram = diagramById.get(section.id);
+    if (diagram?.include && diagram.mermaid.trim()) {
+      block += `\n\n\`\`\`mermaid\n${diagram.mermaid.trim()}\n\`\`\``;
+      if (diagram.caption.trim()) block += `\n\n*${diagram.caption.trim()}*`;
+    }
+    return block;
+  });
+
+  return `# ${title}\n\n${blocks.join("\n\n")}\n`;
 }

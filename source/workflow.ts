@@ -1,7 +1,8 @@
 import { runDeepSearch } from "./agents/deepSearch.ts";
 import { runArchitect } from "./agents/architect.ts";
 import { runDispatch } from "./agents/dispatch.ts";
-import { runWriter } from "./agents/writer.ts";
+import { runWriter, assembleArticle } from "./agents/writer.ts";
+import { runDiagrammer } from "./agents/diagrammer.ts";
 import { WorkflowLogger } from "./utils/logger.ts";
 
 export interface WorkflowOutput {
@@ -27,5 +28,14 @@ export async function runWorkflow(prompt: string): Promise<WorkflowOutput> {
   const written = await runWriter(architecture.content, dispatched.content, search.content);
   logs.record(written, `${dispatched.content.length} dispatched sections`);
 
-  return { article: written.content, logs };
+  const diagrams = await runDiagrammer(architecture.content, written.content);
+  logs.record(diagrams, `${written.content.length} written sections`);
+
+  const article = assembleArticle(
+    architecture.content.title,
+    written.content,
+    diagrams.content,
+  );
+
+  return { article, logs };
 }
