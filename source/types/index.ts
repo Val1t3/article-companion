@@ -1,10 +1,3 @@
-/**
- * Shared types for the article-companion workflow.
- *
- * The pipeline is a sequence of four agents (DeepSearch -> Architect ->
- * Dispatch -> Writer). Each agent consumes the previous agent's structured
- * output and produces its own, wrapped in an `AgentResult` for logging.
- */
 
 /** A single source discovered by the DeepSearch agent. */
 export interface Source {
@@ -48,9 +41,27 @@ export interface DispatchedSection extends ArticleSection {
 
 /** A fully written section produced by the Writer agent. */
 export interface WrittenSection {
+  /** Stable slug-like id, matching the originating `ArticleSection.id`. */
+  id: string;
   heading: string;
   /** Final Markdown body of the section (without the heading line). */
   markdown: string;
+}
+
+/**
+ * An optional explanatory diagram for one section, produced by the Diagrammer
+ * agent. At most one per section; omitted (`include: false`) when a diagram
+ * would not help the reader.
+ */
+export interface SectionDiagram {
+  /** Matches the `ArticleSection.id` / `WrittenSection.id` it belongs to. */
+  sectionId: string;
+  /** Whether a diagram should be embedded for this section. */
+  include: boolean;
+  /** Mermaid source WITHOUT the ```mermaid fence (empty when `include` is false). */
+  mermaid: string;
+  /** Short italic caption shown under the diagram (empty when `include` is false). */
+  caption: string;
 }
 
 /** Metadata attached to every agent run for observability/logging. */
