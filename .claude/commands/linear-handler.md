@@ -59,18 +59,19 @@ Wait for explicit approval. If the user requests changes, revise the plan and as
 
 ---
 
-## Phase 5: Write Plan to Linear
+## Phase 5: Write Plan
 
 Once the user has approved the plan:
 
-1. Use the Linear MCP (`save_issue` or `save_comment` — whichever is appropriate) to write the approved plan as the issue's description or as a comment titled "## Implementation Plan".
-2. Confirm to the user that the plan has been saved to Linear.
+1. Present the final approved plan in a Markdown code block so the user can copy it.
+2. Ask the user to paste it into the Linear issue themselves (as the issue description or as a comment titled "## Implementation Plan").
+3. Wait for the user to confirm they have updated the issue before proceeding.
 
 ---
 
 ## Phase 6: Branch Setup
 
-**Do not start before Phase 5 is complete.**
+**Do not start before the user has confirmed Phase 5 is complete.**
 
 1. Check the current branch with `git branch --show-current`.
 2. Derive the expected branch name from the issue: Linear uses the format `<username>/<issue-id>-<slugified-title>` (e.g. `val1t3/atc-12-add-diagrammer-agent`). Accept any branch whose name contains the issue ID (case-insensitive) as a match.
