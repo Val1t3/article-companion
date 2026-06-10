@@ -7,10 +7,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **article-companion** is a multi-agent system for writing high-quality articles. The current implementation is a **simple, linear pipeline of 5 specialized agents** run in a fixed order:
 
 - **DeepSearch**: finds the 15 most relevant sources for the topic (Tavily web search + Gemini ranking).
-- **Architect**: designs a logical article structure sized to the requested length.
-- **Dispatch**: maps the source substance into each section (content, not writing style).
-- **Writer**: rewrites each section into human-sounding prose following fixed style rules.
-- **Diagrammer**: optionally adds one Mermaid diagram per section to explain a hard concept or the section's logic; skips sections where a diagram adds nothing.
+- **Architect**: designs a logical article structure sized to the requested length, enforcing the Medium title and structure rules (charged title, hook intro, conclusion+CTA last, scannable one-idea sections).
+- **Dispatch**: maps the source substance into each section (content, not writing style); also ensures each concept has a concrete example and flags concepts needing an analogy.
+- **Writer**: rewrites each section into human-sounding prose enforcing the Medium tone/voice, analogy-first explanation, flow, and formatting rules; injects hook rules for the first section and conclusion/CTA rules for the last.
+- **Diagrammer**: optionally adds one Mermaid diagram per section as an in-article visual to explain a hard concept or the section's logic; skips sections where a diagram adds nothing.
+
+The agent prompts embed a Medium writing-rule set (title/hook, structure/flow, tone/voice, explanations/analogies, visuals/formatting, conclusion/CTA) as inline TS constants in each agent file.
 
 The agents run sequentially, each consuming the previous one's structured output. Orchestration is a plain async function (`source/workflow.ts`), not a routing/supervisor agent, because the flow is deterministic and linear.
 

@@ -10,6 +10,12 @@ import type {
 const AGENT = "Diagrammer";
 const TIER = "pro" as const;
 
+const VISUAL_RULES = `
+- A diagram is this article's in-article visual: it works as a "breathing point" that breaks reading fatigue and reinforces comprehension.
+- Add a visual only for a major concept, process, or architecture. Every diagram must add information value; a decorative or obvious diagram dilutes credibility, so skip it.
+- Keep it focused and readable: a handful of nodes/steps, not a sprawling map. At most one per section.
+`.trim();
+
 /** Mermaid diagram-type keywords a valid diagram must start with. */
 const MERMAID_KEYWORDS = [
   "flowchart",
@@ -92,6 +98,14 @@ export async function runDiagrammer(
         `When you do include one: emit raw Mermaid source only (no \`\`\` fences), prefer ` +
         `flowchart or sequenceDiagram, keep it focused and directly tied to this section, and ` +
         `write a one-sentence caption.\n\n` +
+        `Mermaid syntax rules (must follow exactly, or the diagram will not render):\n` +
+        `- ALWAYS wrap a subgraph title in double quotes, e.g. 'subgraph "LLM (Pattern Matching)"', ` +
+        `never 'subgraph LLM (Pattern Matching)'. This is required whenever the title contains a ` +
+        `space, parenthesis, or any non-alphanumeric character.\n` +
+        `- Likewise, wrap any node label that contains spaces or special characters in double quotes ` +
+        `inside its brackets, e.g. A["Input: drop a glass"].\n` +
+        `- Use only plain ASCII node ids (letters/digits) and keep ids distinct from labels.\n\n` +
+        `Visual rules:\n${VISUAL_RULES}\n\n` +
         `Section heading: ${section.heading}\n\nSection prose:\n${section.markdown}`,
     );
 
