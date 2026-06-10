@@ -49,6 +49,11 @@ export async function runDispatch(
       `cover and reference the source ids that back them. Spread material sensibly so each ` +
       `section is well supported and there is little overlap. Focus on substance, not ` +
       `writing style. Use only the provided source ids.\n\n` +
+      `For every concept a section introduces, include at least one concrete, grounded ` +
+      `example among its key points (real tool names, real scenarios, real numbers when ` +
+      `possible) rather than a hypothetical one. When a concept is abstract or technical, ` +
+      `add a key point flagging that the Writer should open it with an everyday analogy. ` +
+      `These are still substance notes, not prose.\n\n` +
       `Sections:\n${structureBlock}\n\nSources:\n${sourceBlock}`,
   );
 
