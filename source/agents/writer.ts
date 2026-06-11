@@ -128,11 +128,14 @@ export async function runWriter(
 /**
  * Assemble the final Markdown article from the written sections, embedding any
  * Mermaid diagram produced by the Diagrammer at the end of its section's body.
+ * When an illustration is provided, it is shown between the title and the first
+ * section as a relative-linked image.
  */
 export function assembleArticle(
   title: string,
   sections: WrittenSection[],
   diagrams: SectionDiagram[],
+  illustration?: { fileName: string; altText: string },
 ): string {
   const diagramById = new Map(diagrams.map((d) => [d.sectionId, d]));
 
@@ -146,5 +149,10 @@ export function assembleArticle(
     return block;
   });
 
-  return `# ${title}\n\n${blocks.join("\n\n")}\n`;
+  let head = `# ${title}\n\n`;
+  if (illustration?.fileName) {
+    head += `![${illustration.altText}](${illustration.fileName})\n\n`;
+  }
+
+  return `${head}${blocks.join("\n\n")}\n`;
 }

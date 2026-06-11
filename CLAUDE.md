@@ -4,13 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**article-companion** is a multi-agent system for writing high-quality articles. The current implementation is a **simple, linear pipeline of 5 specialized agents** run in a fixed order:
+**article-companion** is a multi-agent system for writing high-quality articles. The current implementation is a **simple, linear pipeline of 6 specialized agents** run in a fixed order:
 
 - **DeepSearch**: finds the 15 most relevant sources for the topic (Tavily web search + Gemini ranking).
 - **Architect**: designs a logical article structure sized to the requested length, enforcing the Medium title and structure rules (charged title, hook intro, conclusion+CTA last, scannable one-idea sections).
 - **Dispatch**: maps the source substance into each section (content, not writing style); also ensures each concept has a concrete example and flags concepts needing an analogy.
 - **Writer**: rewrites each section into human-sounding prose enforcing the Medium tone/voice, analogy-first explanation, flow, and formatting rules; injects hook rules for the first section and conclusion/CTA rules for the last.
 - **Diagrammer**: optionally adds one Mermaid diagram per section as an in-article visual to explain a hard concept or the section's logic; skips sections where a diagram adds nothing.
+- **Illustrator**: generates one hand-drawn-style illustration (researcher's-sketch / blueprint feel) of the article theme via a Gemini image model, displayed between the title and the first section. Falls back to no image if generation fails.
 
 The agent prompts embed a Medium writing-rule set (title/hook, structure/flow, tone/voice, explanations/analogies, visuals/formatting, conclusion/CTA) as inline TS constants in each agent file.
 
@@ -27,30 +28,31 @@ The agents run sequentially, each consuming the previous one's structured output
 
 ## Architecture & Key Files
 
-The current implementation is a **simple linear pipeline of 5 agents**, orchestrated by a plain async function (not LangGraph) because the flow is deterministic and linear.
+The current implementation is a **simple linear pipeline of 6 agents**, orchestrated by a plain async function (not LangGraph) because the flow is deterministic and linear.
 
 ```
 prompt.md                  # user brief (English: topic + optional length/tone/audience)
 .env.local                 # GOOGLE_API_KEY, TAVILY_API_KEY (gitignored; see .env.example)
 source/
-  index.ts                 # entry point: read prompt.md -> run workflow -> write outputs
-  workflow.ts              # sequential orchestrator (DeepSearch -> Architect -> Dispatch -> Writer -> Diagrammer)
+  index.ts                 # entry point: read prompt.md -> run workflow -> write outputs (article, image, logs)
+  workflow.ts              # sequential orchestrator (DeepSearch -> Architect -> Dispatch -> Writer -> Diagrammer -> Illustrator); takes the run slug
   config/env.ts            # env validation (Bun loads .env.local natively)
-  config/models.ts         # makeGoogleModel("flash"|"pro") factory over ChatGoogle
-  types/index.ts           # shared interfaces (Source, ArticleStructure, DispatchedSection, WrittenSection, SectionDiagram, AgentResult<T>)
+  config/models.ts         # makeGoogleModel("flash"|"pro") + makeGoogleImageModel() factories over ChatGoogle
+  types/index.ts           # shared interfaces (Source, ArticleStructure, DispatchedSection, WrittenSection, SectionDiagram, ArticleIllustration, AgentResult<T>)
   agents/deepSearch.ts     # 15 best sources via Tavily search + Gemini ranking (flash)
   agents/architect.ts      # logical article structure sized to requested length (pro)
   agents/dispatch.ts       # maps source substance into each section, content not form (flash)
   agents/writer.ts         # rewrites each section with humanization rules, English (pro); also exports assembleArticle()
   agents/diagrammer.ts     # optional Mermaid diagram per section, explains hard concepts (pro)
-  utils/io.ts              # read prompt.md, write output/article-<date>.md and logs-<date>.md
+  agents/illustrator.ts    # one hand-drawn illustration of the article theme (gemini image model)
+  utils/io.ts              # read prompt.md, write output/article-<date>.md, illustration-<date>.png, logs-<date>.md
   utils/logger.ts          # accumulates AgentResult, renders the debug log
-output/                    # article-<date>.md (final article) + logs-<date>.md (per-agent debug)
+output/                    # article-<date>.md (final article) + illustration-<date>.png (header image) + logs-<date>.md (per-agent debug)
 ```
 
-**Pipeline data flow:** DeepSearch returns `Source[]` -> Architect returns `ArticleStructure` -> Dispatch returns `DispatchedSection[]` (key points + source refs) -> Writer returns `WrittenSection[]` (per-section prose) -> Diagrammer returns `SectionDiagram[]` (optional Mermaid per section). The workflow then calls `assembleArticle()` (exported from `writer.ts`) to stitch sections + diagrams into the final Markdown. DeepSearch, Architect, Dispatch, and Diagrammer use `.withStructuredOutput(zodSchema)`; Writer returns prose.
+**Pipeline data flow:** DeepSearch returns `Source[]` -> Architect returns `ArticleStructure` -> Dispatch returns `DispatchedSection[]` (key points + source refs) -> Writer returns `WrittenSection[]` (per-section prose) -> Diagrammer returns `SectionDiagram[]` (optional Mermaid per section) -> Illustrator returns `ArticleIllustration` (one optional header image, base64 bytes). The workflow then calls `assembleArticle()` (exported from `writer.ts`) to stitch the title, optional illustration link, sections + diagrams into the final Markdown; `index.ts` writes the image to disk. DeepSearch, Architect, Dispatch, and Diagrammer use `.withStructuredOutput(zodSchema)`; Writer and Illustrator do not (Writer returns prose, Illustrator returns image bytes).
 
-**Models:** `gemini-2.5-flash` for search/dispatch (speed), `gemini-2.5-pro` for architect/writer/diagrammer (quality). Provider: `@langchain/google` (`ChatGoogle`, Google AI platform via `GOOGLE_API_KEY`).
+**Models:** `gemini-2.5-flash` for search/dispatch (speed), `gemini-2.5-pro` for architect/writer/diagrammer (quality), `gemini-2.5-flash-image` for the Illustrator (image generation via `makeGoogleImageModel`, `responseModalities: ["IMAGE"]`). Provider: `@langchain/google` (`ChatGoogle`, Google AI platform via `GOOGLE_API_KEY`).
 
 **Language:** `prompt.md` and the generated article are in **English**; agent system prompts enforce English output.
 
@@ -66,7 +68,7 @@ output/                    # article-<date>.md (final article) + logs-<date>.md 
 
 **Sequential orchestration** (`source/workflow.ts`):
 
-- Calls the 5 agents in a fixed order, threading each one's structured output into the next
+- Calls the 6 agents in a fixed order, threading each one's structured output into the next
 - Records every agent run in `WorkflowLogger`, rendered to `output/logs-<date>.md`
 - No dynamic routing or supervisor: the pipeline is deterministic
 
@@ -94,7 +96,7 @@ output/                    # article-<date>.md (final article) + logs-<date>.md 
 ### Performance Considerations
 
 - Leverage prompt caching to reduce API costs and latency for repeated contexts
-- The 5 agents are sequential by dependency, but Writer and Diagrammer both process sections one at a time — these per-section calls could be parallelized (independent per section)
+- The 6 agents are sequential by dependency, but Writer and Diagrammer both process sections one at a time — these per-section calls could be parallelized (independent per section). The Illustrator makes a single image call
 - Profile API calls and token usage to optimize prompt design
 
 ## Maintaining This File
@@ -105,7 +107,7 @@ This CLAUDE.md should be updated whenever making significant changes to the proj
 - **New features**: If adding new functionality (e.g., parallel section writing, new agents, alternative search providers), document it in the appropriate section
 - **Dependency updates**: Keep the "Tech Stack" section in sync with `package.json` if major packages are added/removed
 - **Setup changes**: If the run command or required env vars change, update the "Run" line and `.env.example`
-- **Model changes**: If model tiers or the `makeGoogleModel` selection strategy change, update the "Models" note
+- **Model changes**: If model tiers or the `makeGoogleModel` / `makeGoogleImageModel` selection strategy change, update the "Models" note
 
 Regular updates keep this guidance helpful for future Claude instances and reduce context-gathering overhead.
 

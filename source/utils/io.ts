@@ -34,3 +34,20 @@ export async function writeLogs(slug: string, markdown: string): Promise<string>
   await Bun.write(path, markdown);
   return path;
 }
+
+/**
+ * Write the article illustration to disk. Returns the absolute-ish output path
+ * and the bare `fileName`, which is the relative link used inside the article
+ * Markdown (the article and image are siblings in `output/`).
+ */
+export async function writeIllustration(
+  slug: string,
+  base64Data: string,
+  mimeType: string,
+): Promise<{ path: string; fileName: string }> {
+  const ext = mimeType === "image/jpeg" ? "jpg" : "png";
+  const fileName = `illustration-${slug}.${ext}`;
+  const path = `${OUTPUT_DIR}/${fileName}`;
+  await Bun.write(path, Buffer.from(base64Data, "base64"));
+  return { path, fileName };
+}

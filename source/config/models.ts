@@ -29,3 +29,20 @@ export function makeGoogleModel(tier: ModelTier, temperature: number | undefined
     maxRetries: 2,
   });
 }
+
+/** Gemini model used for image generation (not a text tier). */
+export const IMAGE_MODEL_NAME = "gemini-2.5-flash-image";
+
+/**
+ * Factory for the image-generation model. Unlike the text tiers, it requests
+ * image output via `responseModalities` and uses no temperature / structured
+ * output. Reuses the same `GOOGLE_API_KEY` / Google AI platform setup.
+ */
+export function makeGoogleImageModel(): ChatGoogle {
+  return new ChatGoogle({
+    model: IMAGE_MODEL_NAME,
+    responseModalities: ["IMAGE"],
+    imageConfig: { aspectRatio: "16:9" },
+    maxRetries: 2,
+  });
+}

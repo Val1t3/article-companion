@@ -64,6 +64,22 @@ export interface SectionDiagram {
   caption: string;
 }
 
+/**
+ * A single hand-drawn illustration for the whole article, produced by the
+ * Illustrator agent and displayed between the title and the first section.
+ * Omitted (`include: false`) when generation fails or returns no image.
+ */
+export interface ArticleIllustration {
+  /** Whether an illustration should be embedded in the article. */
+  include: boolean;
+  /** Raw base64 image data (no `data:` prefix); empty when `include` is false. */
+  base64Data: string;
+  /** Image MIME type, e.g. "image/png"; empty when `include` is false. */
+  mimeType: string;
+  /** Alt text for the Markdown image; empty when `include` is false. */
+  altText: string;
+}
+
 /** Metadata attached to every agent run for observability/logging. */
 export interface AgentRunMetadata {
   model: string;
