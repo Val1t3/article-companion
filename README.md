@@ -1,45 +1,9 @@
 # article-companion
 
-A Claude Code plugin that writes high-quality Medium-style articles from a one-line brief. You describe a topic; a pipeline of specialized Claude subagents researches it, designs a structure, fills it with sourced substance, writes human-sounding prose, and optionally adds explanatory diagrams, all from one command.
+A Claude Code plugin that helps you write high-quality, sourced, human-sounding articles from a one-line brief.
 
 ---
 
-## How it works
-
-The `write-article` skill drives a fixed sequence of 5 subagents. Each one writes a file the next one reads. There is no dynamic routing or supervisor: the flow is deterministic.
-
-```mermaid
-flowchart TD
-    P(["brief or prompt.md"]) --> DS
-
-    DS["deep-search<br/>sonnet"]
-    DS -- "5 queries x 8 results<br/>WebSearch + re-rank" --> DS_OUT["sources.json<br/>15 sources"]
-
-    DS_OUT --> AR
-
-    AR["architect<br/>opus"]
-    AR -- "title + section plan<br/>3-part arc" --> AR_OUT["structure.json"]
-
-    AR_OUT --> DI
-
-    DI["dispatch<br/>sonnet"]
-    DI -- "key points + source refs<br/>per section" --> DI_OUT["dispatch.json"]
-
-    DI_OUT --> WR
-
-    WR["writer x N<br/>opus, one per section, in parallel"]
-    WR -- "human prose<br/>tone, analogies, flow" --> WR_OUT["sections/NN-id.md"]
-
-    WR_OUT --> DG
-
-    DG["diagrammer<br/>opus"]
-    DG -- "optional Mermaid<br/>per section" --> DG_OUT["diagrams.json"]
-
-    WR_OUT --> AS["assembly<br/>(write-article skill)"]
-    DG_OUT --> AS
-
-    AS --> OUT(["output/slug/article.md"])
-```
 
 ### Agents in detail
 

@@ -71,17 +71,16 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 ## Project Overview
 
-**article-companion** is a **Claude Code plugin** for writing high-quality Medium-style articles. It is made only of Markdown agent and skill definitions: no runtime code, no external API keys.
+**article-companion** is a **Claude Code plugin** that helps you write high-quality, sourced, human-sounding articles from a one-line brief.
 
-A `write-article` skill orchestrates a **simple, linear pipeline of 5 specialized subagents** run in a fixed order:
+The `write-article` skill coordinates the specialized subagents below:
 
 - **deep-search**: finds the 15 most relevant sources for the topic (`WebSearch` + ranking).
 - **architect**: designs a logical article structure sized to the requested length, enforcing the Medium title and structure rules (charged title, hook intro, conclusion+CTA last, scannable one-idea sections).
 - **dispatch**: maps the source substance into each section (content, not writing style); also ensures each concept has a concrete example and flags concepts needing an analogy.
 - **writer**: writes one section into human-sounding prose enforcing the Medium tone/voice, analogy-first explanation, flow, and formatting rules; applies hook rules to the first section and conclusion/CTA rules to the last.
-- **diagrammer**: optionally adds one Mermaid diagram per section as an in-article visual to explain a hard concept or the section's logic; skips sections where a diagram adds nothing.
 
-The Medium writing-rule set (title/hook, structure/flow, tone/voice, explanations/analogies, visuals/formatting, conclusion/CTA) is embedded directly in each agent's system prompt (`agents/*.md`).
+The Medium-style writing-rule set (title/hook, structure/flow, tone/voice, explanations/analogies, visuals/formatting, conclusion/CTA) is embedded directly in each agent's system prompt (`agents/*.md`).
 
 ## Tech Stack
 

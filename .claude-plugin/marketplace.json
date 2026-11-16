@@ -7,7 +7,7 @@
     {
       "name": "article-companion",
       "source": "./",
-      "description": "Multi-agent pipeline that turns a one-line brief into a sourced, human-sounding Medium-style article."
+      "description": "Article Companion turns a one-line brief into a sourced, human-sounding article, from research to final prose."
     }
   ]
 }
