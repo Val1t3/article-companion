@@ -1,0 +1,13 @@
+{
+  "name": "article-companion",
+  "owner": {
+    "name": "Valentin WOEHREL"
+  },
+  "plugins": [
+    {
+      "name": "article-companion",
+      "source": "./",
+      "description": "Multi-agent pipeline that turns a one-line brief into a sourced, human-sounding Medium-style article."
+    }
+  ]
+}

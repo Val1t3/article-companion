@@ -1,0 +1,9 @@
+{
+  "name": "article-companion",
+  "version": "0.1.0",
+  "description": "Multi-agent pipeline that turns a one-line brief into a sourced, human-sounding Medium-style article (research, structure, substance, prose, Mermaid diagrams).",
+  "author": {
+    "name": "Valentin WOEHREL"
+  },
+  "keywords": ["writing", "medium", "article", "research", "agents"]
+}

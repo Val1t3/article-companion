@@ -71,108 +71,80 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 ## Project Overview
 
-**article-companion** is a multi-agent system for writing high-quality articles. The current implementation is a **simple, linear pipeline of 5 specialized agents** run in a fixed order:
+**article-companion** is a **Claude Code plugin** for writing high-quality Medium-style articles. It is made only of Markdown agent and skill definitions: no runtime code, no external API keys.
 
-- **DeepSearch**: finds the 15 most relevant sources for the topic (Tavily web search + Gemini ranking).
-- **Architect**: designs a logical article structure sized to the requested length, enforcing the Medium title and structure rules (charged title, hook intro, conclusion+CTA last, scannable one-idea sections).
-- **Dispatch**: maps the source substance into each section (content, not writing style); also ensures each concept has a concrete example and flags concepts needing an analogy.
-- **Writer**: rewrites each section into human-sounding prose enforcing the Medium tone/voice, analogy-first explanation, flow, and formatting rules; injects hook rules for the first section and conclusion/CTA rules for the last.
-- **Diagrammer**: optionally adds one Mermaid diagram per section as an in-article visual to explain a hard concept or the section's logic; skips sections where a diagram adds nothing.
+A `write-article` skill orchestrates a **simple, linear pipeline of 5 specialized subagents** run in a fixed order:
 
-The agent prompts embed a Medium writing-rule set (title/hook, structure/flow, tone/voice, explanations/analogies, visuals/formatting, conclusion/CTA) as inline TS constants in each agent file.
+- **deep-search**: finds the 15 most relevant sources for the topic (`WebSearch` + ranking).
+- **architect**: designs a logical article structure sized to the requested length, enforcing the Medium title and structure rules (charged title, hook intro, conclusion+CTA last, scannable one-idea sections).
+- **dispatch**: maps the source substance into each section (content, not writing style); also ensures each concept has a concrete example and flags concepts needing an analogy.
+- **writer**: writes one section into human-sounding prose enforcing the Medium tone/voice, analogy-first explanation, flow, and formatting rules; applies hook rules to the first section and conclusion/CTA rules to the last.
+- **diagrammer**: optionally adds one Mermaid diagram per section as an in-article visual to explain a hard concept or the section's logic; skips sections where a diagram adds nothing.
 
-The agents run sequentially, each consuming the previous one's structured output. Orchestration is a plain async function (`source/workflow.ts`), not a routing/supervisor agent, because the flow is deterministic and linear.
+The Medium writing-rule set (title/hook, structure/flow, tone/voice, explanations/analogies, visuals/formatting, conclusion/CTA) is embedded directly in each agent's system prompt (`agents/*.md`).
 
 ## Tech Stack
 
-- **Language**: TypeScript
-- **Runtime**: Bun (package manager, runtime, and test runner; loads `.env.local` natively)
-- **LLM Framework**: LangChain — `@langchain/core` + `@langchain/google` (`ChatGoogle`)
-- **Model Provider**: Google Gemini via `@langchain/google` (Google AI platform, `GOOGLE_API_KEY`)
-- **Web search**: Tavily via `@langchain/tavily` (`TAVILY_API_KEY`)
-- **Schema/validation**: `zod` v4 (structured outputs via `.withStructuredOutput`)
+- **Format**: Claude Code plugin (`.claude-plugin/plugin.json`, `agents/`, `skills/`)
+- **Models**: Claude, selected per agent via the `model` frontmatter (`sonnet` / `opus`)
+- **Web search**: Claude Code built-in `WebSearch` / `WebFetch`
+- **Data exchange**: JSON and Markdown files in a per-run directory (`output/<slug>/`)
 
 ## Architecture & Key Files
 
-The current implementation is a **simple linear pipeline of 5 agents**, orchestrated by a plain async function (not LangGraph) because the flow is deterministic and linear.
+Subagents cannot spawn other subagents, so orchestration lives in the **skill** (which runs in the main conversation), not in an agent.
 
 ```
-prompt.md                  # user brief (English: topic + optional length/tone/audience)
-.env.local                 # GOOGLE_API_KEY, TAVILY_API_KEY (gitignored; see .env.example)
-source/
-  index.ts                 # entry point: read prompt.md -> run workflow -> write outputs
-  workflow.ts              # sequential orchestrator (DeepSearch -> Architect -> Dispatch -> Writer -> Diagrammer)
-  config/env.ts            # env validation (Bun loads .env.local natively)
-  config/models.ts         # makeGoogleModel("flash"|"pro") factory over ChatGoogle
-  types/index.ts           # shared interfaces (Source, ArticleStructure, DispatchedSection, WrittenSection, SectionDiagram, AgentResult<T>)
-  agents/deepSearch.ts     # 15 best sources via Tavily search + Gemini ranking (flash)
-  agents/architect.ts      # logical article structure sized to requested length (pro)
-  agents/dispatch.ts       # maps source substance into each section, content not form (flash)
-  agents/writer.ts         # rewrites each section with humanization rules, English (pro); also exports assembleArticle()
-  agents/diagrammer.ts     # optional Mermaid diagram per section, explains hard concepts (pro)
-  utils/io.ts              # read prompt.md, write output/article-<date>.md and logs-<date>.md
-  utils/logger.ts          # accumulates AgentResult, renders the debug log
-output/                    # article-<date>.md (final article) + logs-<date>.md (per-agent debug)
+.claude-plugin/plugin.json       # plugin manifest
+.claude-plugin/marketplace.json  # single-plugin marketplace (install from this repo)
+agents/deep-search.md            # 15 best sources via WebSearch + ranking (sonnet)
+agents/architect.md              # article structure sized to requested length (opus)
+agents/dispatch.md               # maps source substance into each section, content not form (sonnet)
+agents/writer.md                 # writes ONE section with humanization rules, English (opus)
+agents/diagrammer.md             # optional Mermaid diagram per section (opus)
+skills/write-article/SKILL.md    # orchestrator: reads brief, runs the 5 agents, assembles article.md
+prompt.example.md                # brief template (copy to prompt.md)
+output/<slug>/                   # brief.md, sources.json, structure.json, dispatch.json, sections/, diagrams.json, article.md
 ```
 
-**Pipeline data flow:** DeepSearch returns `Source[]` -> Architect returns `ArticleStructure` -> Dispatch returns `DispatchedSection[]` (key points + source refs) -> Writer returns `WrittenSection[]` (per-section prose) -> Diagrammer returns `SectionDiagram[]` (optional Mermaid per section). The workflow then calls `assembleArticle()` (exported from `writer.ts`) to stitch sections + diagrams into the final Markdown. DeepSearch, Architect, Dispatch, and Diagrammer use `.withStructuredOutput(zodSchema)`; Writer returns prose.
+**Pipeline data flow:** deep-search writes `sources.json` -> architect writes `structure.json` -> dispatch writes `dispatch.json` (key points + source refs per section) -> writer (one agent per section, launched in parallel) writes `sections/<NN>-<id>.md` -> diagrammer writes `diagrams.json`. The skill then stitches title + sections + diagrams into `article.md`. The JSON shapes are specified in each agent's "Output" section; keep them in sync with the readers (downstream agents and the skill's assembly step) when changing one.
 
-**Models:** `gemini-2.5-flash` for search/dispatch (speed), `gemini-2.5-pro` for architect/writer/diagrammer (quality). Provider: `@langchain/google` (`ChatGoogle`, Google AI platform via `GOOGLE_API_KEY`).
+**Models:** `sonnet` for deep-search/dispatch (speed), `opus` for architect/writer/diagrammer (quality).
 
-**Language:** `prompt.md` and the generated article are in **English**; agent system prompts enforce English output.
+**Language:** the brief and the generated article are in **English**; agent prompts enforce English output.
 
-**Run:** `bun run start`.
+**Run:** `/article-companion:write-article [brief]` (reads `prompt.md` when no brief is given).
 
 ### Key Patterns
 
-**Agent Interface**: All agents implement a common contract:
+**Agent contract** (every `agents/*.md`):
 
-- Input: Task description + context
-- Output: Structured result with content + metadata
-- Error handling: Graceful fallbacks and error reporting
+- Input: absolute paths to upstream files + an output path, passed by the skill
+- Output: writes its result file, then replies with a one-line summary (used for progress reporting)
+- Failure: the skill retries a failed step once, then stops and reports which step failed
 
-**Sequential orchestration** (`source/workflow.ts`):
+**Sequential orchestration** (`skills/write-article/SKILL.md`):
 
-- Calls the 5 agents in a fixed order, threading each one's structured output into the next
-- Records every agent run in `WorkflowLogger`, rendered to `output/logs-<date>.md`
+- Calls the 5 agents in a fixed order, each reading the previous ones' files
+- Intermediate files in the run dir double as the debug log
 - No dynamic routing or supervisor: the pipeline is deterministic
-
-**Gemini + zod structured output gotcha**:
-
-- Gemini function-declaration schemas reject exclusive-bound keywords. Avoid `.positive()`, `.nonnegative()`, `.gt()`, `.lt()` in zod schemas (they emit `exclusiveMinimum`/`exclusiveMaximum`).
-- Use inclusive bounds instead: `.min()` / `.max()` (emit `minimum` / `maximum`, which Gemini accepts).
 
 ## Guidelines
 
-### Code Organization
-
-- Keep agents independent and single-purpose
-- Use TypeScript interfaces to define agent contracts
-- Centralize shared types in `source/types/`
-- Use environment variables (via `.env.local`) for configuration, never hardcode secrets
-
-### Agent Development
-
-- Each agent should validate its input and return structured output
-- Include clear logging at key execution points
-- Handle API rate limits and transient failures gracefully
-- Document the specific role and expected input/output for each agent
-
-### Performance Considerations
-
-- Leverage prompt caching to reduce API costs and latency for repeated contexts
-- The 5 agents are sequential by dependency, but Writer and Diagrammer both process sections one at a time — these per-section calls could be parallelized (independent per section)
-- Profile API calls and token usage to optimize prompt design
+- Keep agents independent and single-purpose; one file per agent in `agents/`
+- Agent names are namespaced by the plugin when invoked: `article-companion:<agent-name>`
+- Give each agent only the tools it needs (`tools` frontmatter)
+- Writing rules belong in the agent that applies them; do not duplicate them in the skill
 
 ## Maintaining This File
 
 This CLAUDE.md should be updated whenever making significant changes to the project:
 
-- **Architecture changes**: If adding/removing agents or changing the pipeline order, update "Architecture & Key Files" and the data-flow description
-- **New features**: If adding new functionality (e.g., parallel section writing, new agents, alternative search providers), document it in the appropriate section
-- **Dependency updates**: Keep the "Tech Stack" section in sync with `package.json` if major packages are added/removed
-- **Setup changes**: If the run command or required env vars change, update the "Run" line and `.env.example`
-- **Model changes**: If model tiers or the `makeGoogleModel` selection strategy change, update the "Models" note
+- **Architecture changes**: If adding/removing agents or changing the pipeline order, update "Architecture & Key Files", the data-flow description, the skill, and the README diagram
+- **New features**: If adding new functionality (new agents, new skills, alternative outputs), document it in the appropriate section
+- **File contract changes**: If an agent's output shape changes, update its readers and the README data-flow block
+- **Setup changes**: If the run command or install steps change, update the "Run" line and the README
+- **Model changes**: If an agent's `model` changes, update the "Models" note
 
 Regular updates keep this guidance helpful for future Claude instances and reduce context-gathering overhead.
 
