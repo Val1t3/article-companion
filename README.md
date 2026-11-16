@@ -15,16 +15,13 @@ A Claude Code plugin that helps you write high-quality, sourced, human-sounding 
 | **writer** | `opus` | Writes one section as final Markdown prose: analogy-first explanations, conversational tone, enforced Medium voice and formatting rules. Hook rules apply to the first section, conclusion/CTA rules to the last. |
 | **diagrammer** | `opus` | Evaluates each section and, where a diagram genuinely helps, produces a Mermaid diagram with a caption. Sections where a visual adds nothing are skipped. |
 
-### Data flow (files in the run directory)
 
-```
-deep-search → sources.json    { queries, candidateCount, sources: [{ id, title, url, snippet, relevance }] }
-architect   → structure.json  { title, targetWordCount, sections: [{ id, heading, description, estimatedWords }] }
-dispatch    → dispatch.json   { sections: [{ ...section, keyPoints, sourceRefs }] }
-writer      → sections/NN-id.md   (section body, no heading)
-diagrammer  → diagrams.json   { diagrams: [{ sectionId, include, mermaid, caption }] }
-skill       → article.md
-```
+### Skills in detail
+
+| Skill | Role |
+|---|---|
+| **write-article** | The orchestrator (`/article-companion:write-article`). Runs the five agents in order, validates the Mermaid diagrams and assembles `article.md`. |
+| **humanizer** | Rewrites AI-sounding text so it reads like a person wrote it, without changing what it says. It looks for 26 patterns of AI writing (not-X-but-Y contrasts, one-line closers, forced triads, inflated claims, stock AI words, bold as decoration, etc.). Adapted from the open-source [blader/humanizer](https://github.com/blader/humanizer) skill (MIT) and modified for this project. See [skills/humanizer/README.md](skills/humanizer/README.md). |
 
 ---
 
@@ -42,6 +39,7 @@ agents/
   diagrammer.md            # optional Mermaid diagrams
 skills/
   write-article/SKILL.md   # orchestrator: runs the 5 agents, assembles article.md
+  humanizer/SKILL.md       # removes AI writing patterns (adapted from blader/humanizer, MIT)
 prompt.example.md          # brief template
 output/                    # generated runs (gitignored)
 ```
@@ -77,41 +75,8 @@ Or load it for a single session: `claude --plugin-dir /path/to/article-companion
 
 ## Usage
 
-### Option A: brief inline
-
 ```
 /article-companion:write-article Write a 2000-word article for senior engineers about the trade-offs of event-driven architecture vs. request-response in distributed systems.
 ```
 
 You can also just ask Claude to write an article: the skill triggers on its own.
-
-### Option B: brief in `prompt.md`
-
-```bash
-cp prompt.example.md prompt.md
-```
-
-Edit `prompt.md`, then run `/article-companion:write-article` with no argument.
-
-The brief is in English. You can specify a target length and audience; if you don't, the architect defaults to a ~1200-word article.
-
----
-
-## Output
-
-Each run creates its own directory:
-
-```
-output/2026-11-16_14-32-05/
-  brief.md
-  sources.json
-  structure.json
-  dispatch.json
-  sections/
-    01-introduction.md
-    02-...
-  diagrams.json
-  article.md        ← paste directly into Medium
-```
-
-The intermediate files replace the old debug log: you can inspect what each agent produced.
