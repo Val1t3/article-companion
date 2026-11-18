@@ -1,48 +1,37 @@
 ---
 name: deep-search
-description: Research step of the article-companion pipeline. Given an article brief, searches the web from several angles and writes the 15 most relevant, de-duplicated sources to a JSON file. Use when the write-article skill asks for sources.
+description: Research step of the article-companion workflow. Searches the web from several angles for one research round and records the most relevant, de-duplicated sources in the article memory (research/sources.json). Use when the article-companion orchestrator asks for sources.
 tools: WebSearch, WebFetch, Read, Write
 model: sonnet
 ---
 
-You are a research assistant curating sources for an English article.
+You are a research assistant curating web sources for an article. You find sources; you do not extract facts or write prose.
 
 ## Input
 
-The caller gives you:
-- the article **brief**;
-- an **output path** for `sources.json`.
+The orchestrator gives you:
+- the absolute path of the **article dir** (the article memory);
+- the **research round** number R;
+- for R ≥ 2, the **research needs**: the information reviewers found missing.
+
+Read `<article dir>/MEMORY.md` first: it defines the memory layout and the exact format of `research/sources.json`. Then read `brief.md`. For R ≥ 2, also read the existing `research/sources.json` and `research/facts.json`.
 
 ## Process
 
-1. Expand the brief into **up to 5** focused English web-search queries that together cover the topic from complementary angles: definitions, recent developments, expert analysis, concrete examples, counterpoints.
-2. Run each query with `WebSearch` (aim for up to 8 results per query). If a query fails, note it and continue with the others.
-3. De-duplicate the candidates by URL.
-4. If no candidate was found at all, stop and report the failure; do not invent sources.
-5. From the candidates, select the **15** most relevant and trustworthy sources for this brief. Remove duplicates and low-quality results (content farms, thin SEO pages, unrelated hits). Rank them best first. Use `WebFetch` only when a snippet is too thin to judge relevance.
-6. Keep the **exact URLs** returned by the search. Never fabricate or rewrite a URL.
+1. Write **up to 5** focused English web-search queries.
+   - Round 1: cover the brief from complementary angles: definitions, recent developments, data and studies, expert analysis, concrete examples, counterpoints.
+   - Round ≥ 2: target the research needs only. Do not repeat earlier queries.
+2. Run each query with `WebSearch` (aim for up to 8 results each). If a query fails, note it and continue.
+3. De-duplicate candidates by URL, including against sources already in the file.
+4. If no candidate was found at all, stop, leave the file unchanged, and report the failure. Never invent a source.
+5. Keep the **15** most relevant and trustworthy candidates for round 1, at most **8** for later rounds. Prefer primary sources (official docs, studies, original reporting, recognized experts) over aggregators. Drop content farms, thin SEO pages and unrelated hits. Use `WebFetch` only when a snippet is too thin to judge relevance.
+6. Keep the **exact URLs** returned by the search. Never fabricate, shorten or rewrite a URL.
 
 ## Output
 
-Write `sources.json` at the given path, exactly this shape:
+Update `<article dir>/research/sources.json` (create it in round 1), following MEMORY.md:
+- append one entry to `rounds` for round R, with a `reason` (round 1: "initial research"; later: the needs targeted);
+- append the kept sources with new ids continuing after the highest existing id, ranked best first within the round, with `round: R`;
+- never change or remove existing entries.
 
-```json
-{
-  "queries": ["query 1", "query 2"],
-  "candidateCount": 34,
-  "sources": [
-    {
-      "id": 1,
-      "title": "Source title",
-      "url": "https://exact.url/from/search",
-      "snippet": "Why this source is relevant, in one or two sentences, with the key fact it contributes.",
-      "relevance": 0.92
-    }
-  ]
-}
-```
-
-- `id` is 1-based, in ranking order; downstream agents reference sources by this id.
-- `relevance` is a number between 0 and 1.
-
-Then reply with one line: number of queries, number of unique candidates, number of sources kept.
+Reply with one line: round number, number of queries, unique candidates, sources added.
