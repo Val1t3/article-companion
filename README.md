@@ -30,7 +30,6 @@ Each article gets its own folder, `articles/<slug>/`, which holds its whole hist
 articles/<slug>/
   MEMORY.md              # layout + format of every file
   STYLE.md               # editorial rules
-  voice/                 # X voice references for the writer (read-only)
   state.json             # status, counters, step history (lets you resume)
   brief.md               # subject, audience, length, angle
   research/sources.json  # sources, all rounds            (deep-search)
@@ -51,12 +50,13 @@ To resume an interrupted article, start the orchestrator with the folder path as
 | Agent | Model | Role |
 |---|---|---|
 | **orchestrator** | `opus` | Main agent. Builds the brief, creates the article memory, runs the research → writing → review loop, decides, and publishes `final/article.md`. Manages the memory folder with `article-memory`. |
-| **deep-search** | `sonnet` | Writes up to 5 search queries per round, runs them with `WebSearch`, deduplicates, keeps the best sources (15 in round 1, 8 in later rounds targeting gaps). |
 | **fact-extractor** | `sonnet` | Fetches each source and records atomic facts, each with a verbatim quote from the page. Rejects sources it cannot read and lists the remaining gaps. |
-| **writer** | `opus` | Writes or revises the full draft of an X Article (title, hook, sections, conclusion + CTA) from the verified facts only, following `STYLE.md`, in a spoken, builder-minded voice modeled on Meng To's X writing (`voice/`). |
 | **fact-checker** | `opus` | Checks every factual statement of the draft against the facts: support, exact numbers, attribution, links. |
 | **editor** | `opus` | Judges fit with the brief, argument, title, structure, length, and whether the research is deep enough. |
 | **style-reviewer** | `opus` | Judges voice, flow and formatting against `STYLE.md`, and flags AI-writing patterns using the humanizer catalogue. |
+| **deep-search** | `sonnet` | Generates 5 search queries, runs them with `WebSearch` (up to 8 results each), deduplicates, then re-ranks to keep the 15 most relevant sources. |
+| **writer** | `opus` | Writes one section of an X Article as final Markdown prose in a direct, spoken, builder-minded voice modeled on Meng To's X writing (reads `references/write-like-meng-on-x/`), grounded only in the run's sources. Hook rules apply to the first section, ending/CTA rules to the last. |
+
 
 ### Skills in detail
 
@@ -80,6 +80,13 @@ agents/
   fact-checker.md                 # review: accuracy
   editor.md                       # review: brief, argument, structure
   style-reviewer.md               # review: voice, flow, AI patterns
+  deep-search.md           # 15 best sources via WebSearch + ranking
+  architect.md             # article structure + title rules
+  dispatch.md              # substance mapping per section
+  writer.md                # prose generation for one section
+  diagrammer.md            # optional Mermaid diagrams
+references/
+  write-like-meng-on-x/    # voice-profile.md + tweet-corpus.jsonl used by the writer (from MengTo/Skills, MIT)
 skills/
   humanizer/SKILL.md              # removes AI writing patterns (adapted from blader/humanizer, MIT)
 bin/
@@ -89,7 +96,6 @@ tools/article-memory/             # uv project (Python >= 3.11, pydantic)
   src/article_memory/memory.py    # folder operations + validation
   src/article_memory/models.py    # pydantic models of every memory file
   src/article_memory/templates/   # MEMORY.md (memory spec) and STYLE.md (editorial rules)
-  src/article_memory/templates/voice/  # writer's X voice: voice-profile.md + tweet-corpus.jsonl (from MengTo/Skills, MIT)
 articles/                         # generated article memories (gitignored)
 ```
 
@@ -136,4 +142,3 @@ Add `-p` to run it headless. The more context you give (subject, audience, lengt
 ```
 claude --agent article-companion:orchestrator "articles/<slug>"
 ```
-
