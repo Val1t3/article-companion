@@ -22,7 +22,7 @@ def cmd_init(a: argparse.Namespace) -> int:
     else:
         context = a.context or ""
     brief = Brief(context=context, include=a.include, avoid=a.avoid)
-    for key in ("audience", "length", "angle", "language"):
+    for key in ("audience", "length", "angle"):
         if getattr(a, key) is not None:
             setattr(brief, key, getattr(a, key))
     article = init_article(Path(a.root), a.slug, brief, max_drafts=a.max_drafts)
@@ -81,7 +81,6 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--angle")
     s.add_argument("--include", action="append", default=[], help="must include (repeatable)")
     s.add_argument("--avoid", action="append", default=[], help="must avoid (repeatable)")
-    s.add_argument("--language")
     s.add_argument("--root", default="articles", help="parent folder (default: ./articles)")
     s.add_argument("--max-drafts", type=int, default=3)
     s.set_defaults(func=cmd_init)

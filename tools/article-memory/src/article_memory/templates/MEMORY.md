@@ -70,7 +70,7 @@ The `orchestrator` agent creates the folder (with the `article-memory` tool) and
 - Angle: <the point of view to defend, if given; otherwise "to be derived from the research">
 - Must include: <items, or "nothing specific">
 - Must avoid: <items, or "nothing specific">
-- Language: <English unless the user asked otherwise>
+- Language: English (always, whatever the language of the context above)
 ```
 
 ### `research/sources.json`

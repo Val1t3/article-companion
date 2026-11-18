@@ -21,8 +21,8 @@ Read `<article dir>/MEMORY.md` first: it defines the memory layout and the exact
 2. Fetch each one with `WebFetch`. If a page cannot be fetched, is paywalled, or does not match its snippet, add it to `rejected` with the reason and move on. A search snippet alone is never enough to record a fact.
 3. From each page, extract the facts useful for the brief (and, for R ≥ 2, for the research needs): numbers, dates, definitions, events, concrete examples, expert opinions, notable quotes. Aim for 3 to 8 facts per useful source.
 4. For every fact:
-   - write `claim` as one atomic statement: one fact per entry, with the scope and unit the source gives (who, where, when);
-   - copy `quote` **character for character** from the fetched page; it must support the claim on its own;
+   - write `claim` in English, even when the page or the brief is in another language, as one atomic statement: one fact per entry, with the scope and unit the source gives (who, where, when);
+   - copy `quote` **character for character** from the fetched page, in the page's own language (never translate it); it must support the claim on its own;
    - record an expert's view as `expert-opinion` and attribute it in the claim ("According to X, ..."), never as a plain fact;
    - skip anything the page only implies, and anything you cannot quote.
 5. Do not merge facts across sources. If two sources disagree, record both facts.

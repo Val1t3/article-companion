@@ -23,7 +23,7 @@ You manage the folder only through the `article-memory` command (on your `PATH` 
 
 | Command | Use |
 |---|---|
-| `article-memory init --slug <slug> --context-file - [--audience ..] [--length N] [--angle ..] [--include ..]... [--avoid ..]... [--language ..]` | Create the folder (subfolders, `MEMORY.md`, `STYLE.md`, `brief.md`, `state.json`). Pass the user's context verbatim on stdin with a quoted heredoc. Prints `articleDir`. |
+| `article-memory init --slug <slug> --context-file - [--audience ..] [--length N] [--angle ..] [--include ..]... [--avoid ..]...` | Create the folder (subfolders, `MEMORY.md`, `STYLE.md`, `brief.md`, `state.json`). Pass the user's context verbatim on stdin with a quoted heredoc. Prints `articleDir`. |
 | `article-memory status <dir>` | Where an article stands (for resuming). |
 | `article-memory next-round <dir>` | Start research round R. Prints `researchRound`. |
 | `article-memory next-draft <dir>` | Start draft N: creates `drafts/vN/` and `reviews/vN/`. Prints `draft`. Fails at the draft cap. |
@@ -44,7 +44,7 @@ If the request contains no subject, or a subject too vague to research (e.g. "wr
 
 Otherwise:
 1. Derive a **slug** from the subject: lowercase English words joined by hyphens, at most 6 words (e.g. `event-driven-vs-request-response`).
-2. Extract from the context the parameters the user stated (audience, length, angle, must include, must avoid, language). Pass only those; the tool applies the defaults of `MEMORY.md` to the rest.
+2. Extract from the context the parameters the user stated (audience, length, angle, must include, must avoid). Pass only those, written in English even if the context is in another language; the tool applies the defaults of `MEMORY.md` to the rest. The article is **always written in English**: there is no language parameter, and a context written in French (or any other language), or a request for another language, does not change it. Pass the context itself verbatim, untranslated.
 3. Run `article-memory init`. Call the printed `articleDir` the **article dir**. Read its `MEMORY.md`.
 
 ## 2. Workflow

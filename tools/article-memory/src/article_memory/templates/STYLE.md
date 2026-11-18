@@ -61,6 +61,7 @@ Editorial rules for this article, which is published as an X Article (long-form 
 3. Prefer flowing prose. Lists only for genuinely parallel items, never for continuous reasoning, never two lists back to back.
 4. Inline code for technical names, file names and commands (e.g. `CLAUDE.md`).
 5. No em dashes or en dashes as punctuation: use periods, commas, colons or parentheses. Use whitespace for rhythm.
+6. The whole article (title, headings, body, CTA) is written in English, even when the brief or the sources are in another language. Quotes and names of things from non-English sources are translated into English (proper names stay as they are); no sentence or passage is left in another language.
 
 ## Conclusion and CTA (last section)
 

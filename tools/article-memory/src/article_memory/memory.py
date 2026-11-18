@@ -72,7 +72,6 @@ class Brief:
     angle: str = "to be derived from the research"
     include: list[str] = field(default_factory=list)
     avoid: list[str] = field(default_factory=list)
-    language: str = "English"
 
     def render(self) -> str:
         def items(values: list[str]) -> str:
@@ -87,7 +86,7 @@ class Brief:
             f"- Angle: {self.angle}\n"
             f"- Must include: {items(self.include)}\n"
             f"- Must avoid: {items(self.avoid)}\n"
-            f"- Language: {self.language}\n"
+            "- Language: English (always, whatever the language of the context above)\n"
         )
 
 

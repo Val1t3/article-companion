@@ -16,7 +16,7 @@ brief ──► research ──► writing ──► review ──► decision �
              └───────────────── research ◄───────┘
 ```
 
-1. **Brief.** The orchestrator turns your context into `brief.md`, using defaults for what you did not specify. Without a researchable subject, it stops and tells you what is missing.
+1. **Brief.** The orchestrator turns your context into `brief.md`, using defaults for what you did not specify. Articles are always written in English, even if your context is in French or another language. Without a researchable subject, it stops and tells you what is missing.
 2. **Research.** `deep-search` finds sources, `fact-extractor` reads them and keeps only facts backed by a verbatim quote. Inventing information is forbidden: the writer may only use these verified facts.
 3. **Writing.** `writer` produces a full draft and maps every factual claim to the facts that support it.
 4. **Review.** `fact-checker`, `editor` and `style-reviewer` score the draft in parallel, each on its own criterion. Every issue says whether it can be fixed by rewriting or needs more research.

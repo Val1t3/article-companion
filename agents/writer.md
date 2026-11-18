@@ -38,7 +38,7 @@ Follow these steps in order. Do not skip the reading steps: the voice comes from
 
 ### 2. Load the substance
 
-1. Read `brief.md`: audience, length, angle, must-include, must-avoid.
+1. Read `brief.md`: audience, length, angle, must-include, must-avoid. The brief may be written in French or another language; the article is always written in English (STYLE.md, Formatting, rule 6), and so are `claims.json` and `changelog.md`.
 2. Read every fact in `facts.json` with its `quote`. Group them by idea; note which ones are the strongest proof (numbers, named results, before/after, concrete steps).
 3. For N ≥ 2, read the previous draft and every issue of its reviews before planning anything.
 

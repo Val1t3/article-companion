@@ -22,7 +22,7 @@ Read `<article dir>/MEMORY.md` first: it defines the memory layout and the exact
 3. For each issue, quote the exact excerpt in `location` and give a concrete fix in `suggestion` (a rewritten sentence when useful). Any rewrite you suggest must keep every fact, number and link unchanged.
 4. For N ≥ 2: check whether your previous issues were addressed and whether the revision introduced new ones.
 
-Every issue you report has `route: "writing"`. Severity: `major` for a pattern that runs through the article (a repeated tell, walls of text, a hook that opens with a definition, a recap conclusion), `minor` for isolated occurrences. Style alone is never a `blocker`.
+Every issue you report has `route: "writing"`. Severity: `major` for a pattern that runs through the article (a repeated tell, walls of text, a hook that opens with a definition, a recap conclusion), `minor` for isolated occurrences. Style alone is never a `blocker`, with one exception: any sentence or passage not written in English (Formatting, rule 6) is a `blocker`.
 
 ## Output
 
