@@ -10,6 +10,7 @@ A Claude Code **plugin** that writes sourced, Medium-style articles from a one-l
 - `agents/orchestrator.md`: the main agent (workflow, decisions). It manages the memory folder only through `article-memory`.
 - `tools/article-memory/`: uv project (Python >= 3.11, pydantic). `models.py` = pydantic models of every memory file; `memory.py` = init/transitions/validation; `cli.py` = commands (each prints one JSON object). `templates/MEMORY.md` is the agent-facing memory spec, `templates/STYLE.md` the editorial rules; both are copied into each article folder by `init`.
 - `bin/article-memory`: shim (`uv run --frozen --project tools/article-memory`). Claude Code puts a plugin's `bin/` on the Bash tool's PATH.
+- `hooks/hooks.json` + `hooks/approve-article-memory.py`: a `PreToolUse` hook (stdlib Python) that pre-approves `Write`/`Edit` under `research/`, `drafts/`, `reviews/` of an article folder and single, operator-free `article-memory` Bash calls, so runs are unattended. Moving an agent's output elsewhere in the folder, or changing how the orchestrator calls the CLI, means updating it.
 - `agents/*.md`: the orchestrator and six subagents (frontmatter sets `tools` and `model`; body is the prompt).
 - `skills/humanizer/SKILL.md`: a standalone skill that rewrites AI-sounding prose (26 patterns, strongest first). Adapted from the MIT-licensed [blader/humanizer](https://github.com/blader/humanizer) and modified for this project; keep the attribution in `skills/humanizer/README.md`. Not run by the pipeline, but `style-reviewer` loads it with the `Skill` tool as a pattern catalogue.
 
@@ -19,8 +20,10 @@ The CLI can be run directly: `bin/article-memory --help` (after changing depende
 
 ```
 claude --plugin-dir /path/to/article-companion
-claude --plugin-dir /path/to/article-companion --agent article-companion:orchestrator "<full article context>"
+claude --plugin-dir /path/to/article-companion --permission-mode acceptEdits --agent article-companion:orchestrator "<full article context>"
 ```
+
+Never run it in auto mode: the classifier gives no verdict on subagent `Write`s made after reading web content, even with allow rules, so every run fails at research round 1.
 
 The orchestrator never talks to the user: everything comes from its initial prompt, and its final reply is the report. Each article gets a memory folder `articles/<slug>/` (gitignored); inspect `state.json` `history`, the drafts and the reviews there to debug which agent misbehaved. Passing that folder path as the prompt resumes the article.
 

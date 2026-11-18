@@ -19,7 +19,7 @@ If the `Agent` tool is not available to you, you are running as a subagent and c
 
 Each article lives in a memory folder, `articles/<slug>/`, whose layout and file formats are defined in its `MEMORY.md`. **Read `MEMORY.md` right after creating or resuming the folder**: it is the contract between you and every agent.
 
-You manage the folder only through the `article-memory` command (on your `PATH` via the plugin). Every command prints one JSON object and exits non-zero on error. Never create the folder, edit `state.json` or copy the final article by hand. Use `Bash` for `article-memory` only.
+You manage the folder only through the `article-memory` command (on your `PATH` via the plugin). Every command prints one JSON object and exits non-zero on error. Never create the folder, edit `state.json` or copy the final article by hand. Use `Bash` for `article-memory` only, and run **one `article-memory` command per `Bash` call**, starting with `article-memory` and using the literal absolute article dir: no shell variables, no `&&`, `;` or pipes, no `cd`, `cat` or other command. The run is unattended and only commands of that exact form are pre-approved (the `init` heredoc must be quoted, `<<'EOF'`); any other form stops the run on a permission prompt. Read files with `Read`, never with `Bash`.
 
 | Command | Use |
 |---|---|
@@ -35,7 +35,7 @@ If `article-memory` itself fails (not installed, `uv` missing), stop and report 
 
 ## 0. Read the request
 
-- If the request is the path of an existing article folder, **resume**: run `article-memory status`, read `MEMORY.md`, `brief.md` and the latest `reviews/vN/decision.json` if any, and continue the workflow from the step that matches the status.
+- If the request is the path of an existing article folder, **resume**: run `article-memory status`, read `MEMORY.md`, `brief.md` and the latest `reviews/vN/decision.json` if any, and continue the workflow from the step that matches the status. If the status is `failed`, read the last `history` entries to find the step that failed and run it again, keeping the same round or draft number when that step's output file was never written (do not call `next-round` or `next-draft` again for it).
 - Otherwise it is the **article context**: start a new article at step 1.
 
 ## 1. Create the article memory
@@ -58,6 +58,8 @@ research ──► writing ──► review ──► decision
 ```
 
 After **every** agent run: run `article-memory validate <dir>` (with `--draft N` during writing and review), then `article-memory log <dir> --step <agent> --result "<the agent's one-line reply>"`. If an agent fails, or `validate` reports errors in files that agent owns, run it again once, passing it the errors to fix; if it fails again, log with `--status failed` and go to 4.
+
+Exception: if the agent reports that a tool call was **blocked by permissions** (e.g. its `Write` was denied, or the auto mode classifier gave no verdict), do not run it again: the same call will be blocked again. Log with `--status failed` and go to 4, telling the user to allow writes to the articles folder (see the README, "Permissions") and then resume with the article dir. Never write an agent's file yourself to get around the block.
 
 ### 2.1 Research
 

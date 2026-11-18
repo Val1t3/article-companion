@@ -91,6 +91,9 @@ skills/
   humanizer/SKILL.md              # removes AI writing patterns (adapted from blader/humanizer, MIT)
 bin/
   article-memory                  # shim on the plugin PATH: runs the CLI with uv
+hooks/
+  hooks.json                      # PreToolUse hook registration
+  approve-article-memory.py       # pre-approves article-folder writes and article-memory commands
 tools/article-memory/             # uv project (Python >= 3.11, pydantic)
   src/article_memory/cli.py       # commands
   src/article_memory/memory.py    # folder operations + validation
@@ -126,6 +129,31 @@ For local development, point the marketplace at your clone instead:
 ```
 
 Or load it for a single session: `claude --plugin-dir /path/to/article-companion`.
+
+### Permissions
+
+**Do not run the orchestrator in auto mode.** The subagents write their results with the `Write` tool into `articles/<slug>/` after reading web pages, and the auto mode classifier refuses to judge these writes ("gave no verdict"). They are blocked even when pre-approved, and the run fails at the first research round. Start the session in `acceptEdits` mode instead (subagents inherit it):
+
+```
+claude --permission-mode acceptEdits --agent article-companion:orchestrator "<context>"
+```
+
+The plugin ships a `PreToolUse` hook ([hooks/approve-article-memory.py](hooks/approve-article-memory.py)) that approves, without a prompt, only:
+
+- `Write`/`Edit` of a file under `research/`, `drafts/` or `reviews/` of an article memory folder (`articles/<slug>/` with `MEMORY.md` and a `state.json` whose slug matches). `state.json`, `final/` and anything outside are not covered;
+- a `Bash` command that is a single `article-memory` call, with no shell operator or expansion (a quoted heredoc is allowed, for `init`).
+
+Everything else follows the normal permission flow, and your deny rules still win. For a fully **unattended run**, also allow the research tools in the project where you run the orchestrator, in `.claude/settings.json` (shared) or `.claude/settings.local.json` (just you):
+
+```json
+{
+  "permissions": {
+    "allow": ["WebSearch", "WebFetch", "Agent", "Skill(article-companion:humanizer)"]
+  }
+}
+```
+
+`WebFetch` without a domain allows every domain, which the research needs. Anything else an agent tries still asks for approval (or, with `-p`, is denied), so a prompt during a run points at an agent going off-script.
 
 ---
 
