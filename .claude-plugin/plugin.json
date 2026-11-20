@@ -1,0 +1,9 @@
+{
+  "name": "article-companion",
+  "version": "0.1.0",
+  "description": "Article Companion turns a one-line brief into a sourced, human-sounding article, from research to final prose.",
+  "author": {
+    "name": "Valentin WOEHREL"
+  },
+  "keywords": ["writing", "article", "blog", "research", "agents", "skills"]
+}

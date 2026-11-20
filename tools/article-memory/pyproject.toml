@@ -1,0 +1,16 @@
+[project]
+name = "article-memory"
+version = "0.1.0"
+description = "Article memory tools for the article-companion Claude Code plugin."
+authors = [{ name = "Valentin WOEHREL" }]
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic>=2.9",
+]
+
+[project.scripts]
+article-memory = "article_memory:main"
+
+[build-system]
+requires = ["uv_build>=0.11.28,<0.12.0"]
+build-backend = "uv_build"

@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Write(/articles/**)",
+      "Edit(/articles/**)",
+      "Bash(article-memory *)",
+      "WebSearch",
+      "WebFetch",
+      "Agent",
+      "Skill(article-companion:humanizer)"
+    ]
+  }
+}

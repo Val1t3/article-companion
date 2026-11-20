@@ -1,0 +1,13 @@
+{
+  "name": "article-companion",
+  "owner": {
+    "name": "Valentin WOEHREL"
+  },
+  "plugins": [
+    {
+      "name": "article-companion",
+      "source": "./",
+      "description": "Article Companion turns a one-line brief into a sourced, human-sounding article, from research to final prose."
+    }
+  ]
+}

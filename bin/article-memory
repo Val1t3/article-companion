@@ -1,0 +1,6 @@
+#!/bin/sh
+# Runs the article-memory CLI from this plugin's uv project.
+# Claude Code puts this bin/ directory on the Bash tool's PATH.
+set -e
+root="$(cd "$(dirname "$0")/.." && pwd)"
+exec uv run --quiet --frozen --project "$root/tools/article-memory" article-memory "$@"

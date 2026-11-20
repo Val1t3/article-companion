@@ -2,180 +2,55 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Behavioral Guidelines
+## What this repo is
 
-Behavioral guidelines to reduce common LLM coding mistakes. These bias toward caution over speed — for trivial tasks, use judgment.
+A Claude Code **plugin** that writes sourced, Medium-style articles from a one-line brief. Behavior lives in Markdown prompt files (agents); the article memory folder is managed by a small Python CLI, `article-memory`, run with uv.
 
-### 1. Think Before Coding
+- `.claude-plugin/plugin.json` / `marketplace.json`: plugin manifest and marketplace entry.
+- `agents/orchestrator.md`: the main agent (workflow, decisions). It manages the memory folder only through `article-memory`.
+- `tools/article-memory/`: uv project (Python >= 3.11, pydantic). `models.py` = pydantic models of every memory file; `memory.py` = init/transitions/validation; `cli.py` = commands (each prints one JSON object). `templates/MEMORY.md` is the agent-facing memory spec, `templates/STYLE.md` the editorial rules; both are copied into each article folder by `init`.
+- `bin/article-memory`: shim (`uv run --frozen --project tools/article-memory`). Claude Code puts a plugin's `bin/` on the Bash tool's PATH.
+- `hooks/hooks.json` + `hooks/approve-article-memory.py`: a `PreToolUse` hook (stdlib Python) that pre-approves `Write`/`Edit` under `research/`, `drafts/`, `reviews/` of an article folder and single, operator-free `article-memory` Bash calls, so runs are unattended. Moving an agent's output elsewhere in the folder, or changing how the orchestrator calls the CLI, means updating it.
+- `agents/*.md`: the orchestrator and six subagents (frontmatter sets `tools` and `model`; body is the prompt).
+- `skills/humanizer/SKILL.md`: a standalone skill that rewrites AI-sounding prose (26 patterns, strongest first). Adapted from the MIT-licensed [blader/humanizer](https://github.com/blader/humanizer) and modified for this project; keep the attribution in `skills/humanizer/README.md`. Not run by the pipeline, but `style-reviewer` loads it with the `Skill` tool as a pattern catalogue.
 
-**Don't assume. Don't hide confusion. Surface tradeoffs.**
+## Running / testing
 
-Before implementing:
-
-- State your assumptions explicitly. If uncertain, ask.
-- If multiple interpretations exist, present them — don't pick silently.
-- If a simpler approach exists, say so. Push back when warranted.
-- If something is unclear, stop. Name what's confusing. Ask.
-
-### 2. Simplicity First
-
-**Minimum code that solves the problem. Nothing speculative.**
-
-- No features beyond what was asked.
-- No abstractions for single-use code.
-- No "flexibility" or "configurability" that wasn't requested.
-- No error handling for impossible scenarios.
-- If you write 200 lines and it could be 50, rewrite it.
-
-Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
-
-### 3. Surgical Changes
-
-**Touch only what you must. Clean up only your own mess.**
-
-When editing existing code:
-
-- Don't "improve" adjacent code, comments, or formatting.
-- Don't refactor things that aren't broken.
-- Match existing style, even if you'd do it differently.
-- If you notice unrelated dead code, mention it — don't delete it.
-
-When your changes create orphans:
-
-- Remove imports/variables/functions that YOUR changes made unused.
-- Don't remove pre-existing dead code unless asked.
-
-The test: every changed line should trace directly to the user's request.
-
-### 4. Goal-Driven Execution
-
-**Define success criteria. Loop until verified.**
-
-Transform tasks into verifiable goals:
-
-- "Add validation" → "Write tests for invalid inputs, then make them pass"
-- "Fix the bug" → "Write a test that reproduces it, then make it pass"
-- "Refactor X" → "Ensure tests pass before and after"
-
-For multi-step tasks, state a brief plan:
+The CLI can be run directly: `bin/article-memory --help` (after changing dependencies, run `uv lock` in `tools/article-memory/`; the shim uses `--frozen`). There are no tests yet. To try the whole plugin, load it from the working tree:
 
 ```
-1. [Step] → verify: [check]
-2. [Step] → verify: [check]
-3. [Step] → verify: [check]
+claude --plugin-dir /path/to/article-companion
+claude --plugin-dir /path/to/article-companion --permission-mode acceptEdits --agent article-companion:orchestrator "<full article context>"
 ```
 
-Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
+Never run it in auto mode: the classifier gives no verdict on subagent `Write`s made after reading web content, even with allow rules, so every run fails at research round 1.
 
-**These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
+The orchestrator never talks to the user: everything comes from its initial prompt, and its final reply is the report. Each article gets a memory folder `articles/<slug>/` (gitignored); inspect `state.json` `history`, the drafts and the reviews there to debug which agent misbehaved. Passing that folder path as the prompt resumes the article.
 
-## Project Overview
+## Architecture
 
-**article-companion** is a multi-agent system for writing high-quality articles. The current implementation is a **simple, linear pipeline of 5 specialized agents** run in a fixed order:
-
-- **DeepSearch**: finds the 15 most relevant sources for the topic (Tavily web search + Gemini ranking).
-- **Architect**: designs a logical article structure sized to the requested length, enforcing the Medium title and structure rules (charged title, hook intro, conclusion+CTA last, scannable one-idea sections).
-- **Dispatch**: maps the source substance into each section (content, not writing style); also ensures each concept has a concrete example and flags concepts needing an analogy.
-- **Writer**: rewrites each section into human-sounding prose enforcing the Medium tone/voice, analogy-first explanation, flow, and formatting rules; injects hook rules for the first section and conclusion/CTA rules for the last.
-- **Diagrammer**: optionally adds one Mermaid diagram per section as an in-article visual to explain a hard concept or the section's logic; skips sections where a diagram adds nothing.
-
-The agent prompts embed a Medium writing-rule set (title/hook, structure/flow, tone/voice, explanations/analogies, visuals/formatting, conclusion/CTA) as inline TS constants in each agent file.
-
-The agents run sequentially, each consuming the previous one's structured output. Orchestration is a plain async function (`source/workflow.ts`), not a routing/supervisor agent, because the flow is deterministic and linear.
-
-## Tech Stack
-
-- **Language**: TypeScript
-- **Runtime**: Bun (package manager, runtime, and test runner; loads `.env.local` natively)
-- **LLM Framework**: LangChain — `@langchain/core` + `@langchain/google` (`ChatGoogle`)
-- **Model Provider**: Google Gemini via `@langchain/google` (Google AI platform, `GOOGLE_API_KEY`)
-- **Web search**: Tavily via `@langchain/tavily` (`TAVILY_API_KEY`)
-- **Schema/validation**: `zod` v4 (structured outputs via `.withStructuredOutput`)
-
-## Architecture & Key Files
-
-The current implementation is a **simple linear pipeline of 5 agents**, orchestrated by a plain async function (not LangGraph) because the flow is deterministic and linear.
+The orchestrator is an agent that must run as the session's main agent (`--agent`), since subagents cannot launch subagents; it stops with an explanation if the `Agent` tool is missing. It runs agents and decides, but must not do their work. Agents communicate only through the **article memory** `articles/<slug>/`; `article-memory init` writes `MEMORY.md` and `STYLE.md` there, and every agent reads `MEMORY.md` first. Agents get the absolute article dir plus a round or draft number, and find their inputs themselves.
 
 ```
-prompt.md                  # user brief (English: topic + optional length/tone/audience)
-.env.local                 # GOOGLE_API_KEY, TAVILY_API_KEY (gitignored; see .env.example)
-source/
-  index.ts                 # entry point: read prompt.md -> run workflow -> write outputs
-  workflow.ts              # sequential orchestrator (DeepSearch -> Architect -> Dispatch -> Writer -> Diagrammer)
-  config/env.ts            # env validation (Bun loads .env.local natively)
-  config/models.ts         # makeGoogleModel("flash"|"pro") factory over ChatGoogle
-  types/index.ts           # shared interfaces (Source, ArticleStructure, DispatchedSection, WrittenSection, SectionDiagram, AgentResult<T>)
-  agents/deepSearch.ts     # 15 best sources via Tavily search + Gemini ranking (flash)
-  agents/architect.ts      # logical article structure sized to requested length (pro)
-  agents/dispatch.ts       # maps source substance into each section, content not form (flash)
-  agents/writer.ts         # rewrites each section with humanization rules, English (pro); also exports assembleArticle()
-  agents/diagrammer.ts     # optional Mermaid diagram per section, explains hard concepts (pro)
-  utils/io.ts              # read prompt.md, write output/article-<date>.md and logs-<date>.md
-  utils/logger.ts          # accumulates AgentResult, renders the debug log
-output/                    # article-<date>.md (final article) + logs-<date>.md (per-agent debug)
+research: deep-search     → research/sources.json   (sonnet, appends per round, stable ids)
+          fact-extractor  → research/facts.json     (sonnet, WebFetch, facts with verbatim quotes)
+writing:  writer          → drafts/vN/{article.md, claims.json, changelog.md}   (opus)
+review:   fact-checker    → reviews/vN/fact-checker.json    (opus)   ┐
+          editor          → reviews/vN/editor.json          (opus)   ├ in parallel
+          style-reviewer  → reviews/vN/style-reviewer.json  (opus)   ┘
+decide:   orchestrator    → reviews/vN/decision.json  accept | rewrite | research | stop
+final:    orchestrator    → final/article.md (verbatim copy of the accepted draft)
 ```
 
-**Pipeline data flow:** DeepSearch returns `Source[]` -> Architect returns `ArticleStructure` -> Dispatch returns `DispatchedSection[]` (key points + source refs) -> Writer returns `WrittenSection[]` (per-section prose) -> Diagrammer returns `SectionDiagram[]` (optional Mermaid per section). The workflow then calls `assembleArticle()` (exported from `writer.ts`) to stitch sections + diagrams into the final Markdown. DeepSearch, Architect, Dispatch, and Diagrammer use `.withStructuredOutput(zodSchema)`; Writer returns prose.
+Loop: `research` → research round then new draft; `rewrite` → new draft; max 3 drafts (`maxDrafts` in `state.json`). Accept = all verdicts `pass` (no blocker/major, scores ≥ 7). Each review issue carries a `route` (`writing`|`research`) and a `researchNeed`, which drive the decision.
 
-**Models:** `gemini-2.5-flash` for search/dispatch (speed), `gemini-2.5-pro` for architect/writer/diagrammer (quality). Provider: `@langchain/google` (`ChatGoogle`, Google AI platform via `GOOGLE_API_KEY`).
+Things that span multiple files:
+- File formats are defined twice, on purpose: `templates/MEMORY.md` (read by agents) and `models.py` (used by `validate`). Changing a field means updating both, the producing agent, every consumer (agents and the orchestrator's decide step), and the README memory section.
+- Editorial rules live only in `templates/STYLE.md`; agents cite them by section and rule number (e.g. "Formatting, rule 2"), so renumbering affects reviews.
+- No-invention rule: the writer may only use `facts.json`; `claims.json` maps each factual sentence to fact ids so the fact-checker can verify it. Keep this chain intact when editing any of these agents.
+- The orchestrator has `Agent, Read, Write, Bash` (its prompt limits Bash to `article-memory`; it never edits `state.json` by hand); agents are referenced by the namespaced name `article-companion:<agent>`.
+- Articles are published as X Articles. The writer models its voice on `templates/voice/` (`voice-profile.md` + `tweet-corpus.jsonl`, copied unmodified from the MIT-licensed [MengTo/Skills](https://github.com/MengTo/Skills/tree/main/agent-skills/codex/write-like-meng-on-x); keep `ATTRIBUTION.md` and `LICENSE` next to them). `article-memory init` copies them into `<article dir>/voice/`. The writer's voice rules refine STYLE.md and must never contradict it, since reviewers only judge against STYLE.md.
 
-**Language:** `prompt.md` and the generated article are in **English**; agent system prompts enforce English output.
+## Notes
 
-**Run:** `bun run start`.
-
-### Key Patterns
-
-**Agent Interface**: All agents implement a common contract:
-
-- Input: Task description + context
-- Output: Structured result with content + metadata
-- Error handling: Graceful fallbacks and error reporting
-
-**Sequential orchestration** (`source/workflow.ts`):
-
-- Calls the 5 agents in a fixed order, threading each one's structured output into the next
-- Records every agent run in `WorkflowLogger`, rendered to `output/logs-<date>.md`
-- No dynamic routing or supervisor: the pipeline is deterministic
-
-**Gemini + zod structured output gotcha**:
-
-- Gemini function-declaration schemas reject exclusive-bound keywords. Avoid `.positive()`, `.nonnegative()`, `.gt()`, `.lt()` in zod schemas (they emit `exclusiveMinimum`/`exclusiveMaximum`).
-- Use inclusive bounds instead: `.min()` / `.max()` (emit `minimum` / `maximum`, which Gemini accepts).
-
-## Guidelines
-
-### Code Organization
-
-- Keep agents independent and single-purpose
-- Use TypeScript interfaces to define agent contracts
-- Centralize shared types in `source/types/`
-- Use environment variables (via `.env.local`) for configuration, never hardcode secrets
-
-### Agent Development
-
-- Each agent should validate its input and return structured output
-- Include clear logging at key execution points
-- Handle API rate limits and transient failures gracefully
-- Document the specific role and expected input/output for each agent
-
-### Performance Considerations
-
-- Leverage prompt caching to reduce API costs and latency for repeated contexts
-- The 5 agents are sequential by dependency, but Writer and Diagrammer both process sections one at a time — these per-section calls could be parallelized (independent per section)
-- Profile API calls and token usage to optimize prompt design
-
-## Maintaining This File
-
-This CLAUDE.md should be updated whenever making significant changes to the project:
-
-- **Architecture changes**: If adding/removing agents or changing the pipeline order, update "Architecture & Key Files" and the data-flow description
-- **New features**: If adding new functionality (e.g., parallel section writing, new agents, alternative search providers), document it in the appropriate section
-- **Dependency updates**: Keep the "Tech Stack" section in sync with `package.json` if major packages are added/removed
-- **Setup changes**: If the run command or required env vars change, update the "Run" line and `.env.example`
-- **Model changes**: If model tiers or the `makeGoogleModel` selection strategy change, update the "Models" note
-
-Regular updates keep this guidance helpful for future Claude instances and reduce context-gathering overhead.
-
-## Working with Linear
-
-When you work on the implementation of a Linear issue, write the implementation plan in the content of the Linear issue using the Linear MCP.
+- README.md documents install, usage, the workflow, the memory layout and the agent table; keep it in sync when adding or changing agents.
