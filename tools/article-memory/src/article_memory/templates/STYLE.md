@@ -17,11 +17,11 @@ Editorial rules for this article, which is published as an X Article (long-form 
 
 ## Structure
 
-1. Three-part arc: hook, body sections, conclusion. At least 3 `##` sections in total.
+1. Three-part arc: hook, body sections, conclusion. 3 to 5 `##` sections in total (hook, 1 to 3 body sections, conclusion).
 2. A reader grasps the whole article in under 20 seconds by scanning the headings alone: each heading carries a standalone idea, not a vague label.
-3. One core idea per section. About 150-250 words per body section, never more than 400.
+3. One core idea per section. About 120-200 words per body section, never more than 250. The hook stays under about 100 words, the conclusion and CTA together under about 120.
 4. Sections build toward a cumulative payoff; they do not just list facts. No section repeats another.
-5. Length matches the brief. Without a length in the brief, aim for about 1200 words (a 5-8 minute read).
+5. Short and digestible: **800 words maximum**, a hard limit counted on the whole `article.md` (title, headings, body and CTA). Aim for the brief's length (700 words if unspecified, a 3-4 minute read). Make one point well rather than covering everything: drop secondary facts instead of compressing them into dense sentences.
 
 ## Hook (first section)
 
@@ -58,7 +58,7 @@ Editorial rules for this article, which is published as an X Article (long-form 
 
 1. Natural, human-sounding English. No AI-tell phrases or filler: never "delve into", "it's important to note", "in today's world", "in conclusion", "navigating the landscape", "unlock", "leverage" (as filler), "game-changer".
 2. **Bold** only for key terms or pivotal phrases, 2-3 times per section at most; never a full sentence.
-3. Prefer flowing prose. Lists only for genuinely parallel items, never for continuous reasoning, never two lists back to back.
+3. Prefer flowing prose. Lists only for genuinely parallel items, never for continuous reasoning, at most one list in the article.
 4. Inline code for technical names, file names and commands (e.g. `CLAUDE.md`).
 5. No em dashes or en dashes as punctuation: use periods, commas, colons or parentheses. Use whitespace for rhythm.
 6. The whole article (title, headings, body, CTA) is written in English, even when the brief or the sources are in another language. Quotes and names of things from non-English sources are translated into English (proper names stay as they are); no sentence or passage is left in another language.

@@ -52,7 +52,7 @@ To resume an interrupted article, start the orchestrator with the folder path as
 | **orchestrator** | `opus` | Main agent. Builds the brief, creates the article memory, runs the research → writing → review loop, decides, and publishes `final/article.md`. Manages the memory folder with `article-memory`. |
 | **fact-extractor** | `sonnet` | Fetches each source and records atomic facts, each with a verbatim quote from the page. Rejects sources it cannot read and lists the remaining gaps. |
 | **fact-checker** | `opus` | Checks every factual statement of the draft against the facts: support, exact numbers, attribution, links. |
-| **editor** | `opus` | Judges fit with the brief, argument, title, structure, length, and whether the research is deep enough. |
+| **editor** | `opus` | Judges fit with the brief, argument, title, structure, length (800 words maximum), and whether the research is deep enough. |
 | **style-reviewer** | `opus` | Judges voice, flow and formatting against `STYLE.md`, and flags AI-writing patterns using the humanizer catalogue. |
 | **deep-search** | `sonnet` | Generates 5 search queries, runs them with `WebSearch` (up to 8 results each), deduplicates, then re-ranks to keep the 15 most relevant sources. |
 | **writer** | `opus` | Writes one section of an X Article as final Markdown prose in a direct, spoken, builder-minded voice modeled on Meng To's X writing (reads `references/write-like-meng-on-x/`), grounded only in the run's sources. Hook rules apply to the first section, ending/CTA rules to the last. |
@@ -165,7 +165,7 @@ The orchestrator must run as the session's **main agent** (only the main agent c
 claude --agent article-companion:orchestrator "Write a 2000-word article for senior engineers about the trade-offs of event-driven architecture vs. request-response in distributed systems. Angle: request-response is underrated."
 ```
 
-Add `-p` to run it headless. The more context you give (subject, audience, length, angle, things to include or avoid), the less the orchestrator has to assume. To resume an article:
+Add `-p` to run it headless. Articles are short by design: 800 words maximum (700 by default); a longer requested length is capped at 800. The more context you give (subject, audience, length, angle, things to include or avoid), the less the orchestrator has to assume. To resume an article:
 
 ```
 claude --agent article-companion:orchestrator "articles/<slug>"

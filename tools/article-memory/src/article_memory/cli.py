@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 from typing import get_args
 
-from .memory import Article, Brief, ArticleMemoryError, init_article
+from .memory import DEFAULT_LENGTH, MAX_LENGTH, Article, Brief, ArticleMemoryError, init_article
 from .models import Status
 
 
@@ -22,9 +22,11 @@ def cmd_init(a: argparse.Namespace) -> int:
     else:
         context = a.context or ""
     brief = Brief(context=context, include=a.include, avoid=a.avoid)
-    for key in ("audience", "length", "angle"):
+    for key in ("audience", "angle"):
         if getattr(a, key) is not None:
             setattr(brief, key, getattr(a, key))
+    if a.length is not None:
+        brief.length = min(a.length, MAX_LENGTH)
     article = init_article(Path(a.root), a.slug, brief, max_drafts=a.max_drafts)
     _out({"articleDir": str(article.root), "slug": article.root.name})
     return 0
@@ -77,7 +79,7 @@ def build_parser() -> argparse.ArgumentParser:
     src.add_argument("--context", help="the user's article context, verbatim")
     src.add_argument("--context-file", help="file holding the context ('-' for stdin)")
     s.add_argument("--audience")
-    s.add_argument("--length", type=int, help="target word count")
+    s.add_argument("--length", type=int, help=f"target word count (default {DEFAULT_LENGTH}, clamped to {MAX_LENGTH})")
     s.add_argument("--angle")
     s.add_argument("--include", action="append", default=[], help="must include (repeatable)")
     s.add_argument("--avoid", action="append", default=[], help="must avoid (repeatable)")

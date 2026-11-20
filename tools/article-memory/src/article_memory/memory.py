@@ -30,6 +30,8 @@ SUBDIRS = ("research", "drafts", "reviews", "final")
 VOICE_FILES = ("voice-profile.md", "tweet-corpus.jsonl", "ATTRIBUTION.md", "LICENSE")
 SLUG_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 MAX_SLUG_WORDS = 6
+DEFAULT_LENGTH = 700  # words
+MAX_LENGTH = 800  # words; hard cap, longer requests are clamped
 
 
 class ArticleMemoryError(Exception):
@@ -68,7 +70,7 @@ def write_model(path: Path, model: BaseModel) -> None:
 class Brief:
     context: str
     audience: str = "curious non-expert"
-    length: int = 1200
+    length: int = DEFAULT_LENGTH
     angle: str = "to be derived from the research"
     include: list[str] = field(default_factory=list)
     avoid: list[str] = field(default_factory=list)
@@ -82,7 +84,7 @@ class Brief:
             f"{self.context.strip()}\n\n"
             "## Parameters\n\n"
             f"- Audience: {self.audience}\n"
-            f"- Length: {self.length} words\n"
+            f"- Length: {min(self.length, MAX_LENGTH)} words (hard maximum: {MAX_LENGTH})\n"
             f"- Angle: {self.angle}\n"
             f"- Must include: {items(self.include)}\n"
             f"- Must avoid: {items(self.avoid)}\n"

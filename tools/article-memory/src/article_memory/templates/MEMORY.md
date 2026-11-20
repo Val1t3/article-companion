@@ -66,7 +66,7 @@ The `orchestrator` agent creates the folder (with the `article-memory` tool) and
 ## Parameters
 
 - Audience: <who reads it; "curious non-expert" if unspecified>
-- Length: <target word count; 1200 if unspecified>
+- Length: <target word count; 700 if unspecified; never above the hard maximum of 800>
 - Angle: <the point of view to defend, if given; otherwise "to be derived from the research">
 - Must include: <items, or "nothing specific">
 - Must avoid: <items, or "nothing specific">

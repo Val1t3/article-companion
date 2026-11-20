@@ -18,14 +18,14 @@ Read `<article dir>/MEMORY.md` first: it defines the memory layout and the exact
 ## Process
 
 Judge the draft on:
-1. **Brief fit**: subject, audience, angle, must include, must avoid, length (within ±15% of the target).
+1. **Brief fit**: subject, audience, angle, must include, must avoid, length: count the words of the whole `article.md`; it must be within ±15% of the brief's target and **never above 800** (STYLE.md, Structure, rule 5).
 2. **Argument**: a clear, specific point of view, defended with evidence, building to a payoff.
 3. **Title**: against STYLE.md, Title.
-4. **Structure**: against STYLE.md, Structure, Hook, and Conclusion and CTA. Check that the headings alone tell the story and that no section repeats another.
+4. **Structure**: against STYLE.md, Structure, Hook, and Conclusion and CTA. Check that the headings alone tell the story, that no section repeats another, and the section count and word budgets (Structure, rules 1 and 3). When the draft is too long, say in `fix` what to cut, not just that it is too long.
 5. **Depth of research**: does the argument rest on enough evidence? Look at `missingFacts` in `claims.json`, and at what the brief needs that `facts.json` does not cover. When the article is weakened by missing information, report it with `route: "research"` and a precise `researchNeed` (what to find, not where).
 6. For N ≥ 2: whether your previous issues were addressed.
 
-Severity: `blocker` if the draft misses the brief's subject or audience, or has no discernible argument; `major` for a weak title, a broken arc, a missing must-include, a length far off target, or a research gap that leaves a key point unsupported; `minor` for the rest. Cite the STYLE.md rule in `problem` when one applies (e.g. "Structure, rule 2").
+Severity: `blocker` if the draft misses the brief's subject or audience, or has no discernible argument; `major` for a weak title, a broken arc, a missing must-include, a length above 800 words or far off target, a point or section that dilutes the angle and should be cut to keep the article digestible, or a research gap that leaves a key point unsupported; `minor` for the rest. Cite the STYLE.md rule in `problem` when one applies (e.g. "Structure, rule 2").
 
 ## Output
 
